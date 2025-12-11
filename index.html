@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>待办清单</title>
+  <style>
+    :root{--bg:#f7f8fb;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--primary:#2563eb;--primary-ink:#ffffff;--accent:#14b8a6;--danger:#ef4444;--success:#10b981;--border:#e5e7eb;--shadow:0 10px 30px rgba(17,24,39,.08)}
+    [data-theme="dark"]{--bg:#0b1220;--card:#0f172a;--text:#e5e7eb;--muted:#94a3b8;--primary:#3b82f6;--primary-ink:#0b1220;--accent:#22d3ee;--danger:#f87171;--success:#34d399;--border:#1f2937;--shadow:0 10px 30px rgba(2,6,23,.5)}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif}
+    .wrap{max-width:1100px;margin:40px auto;padding:0 24px}
+    .header{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+    .title{flex:1;font-size:32px;font-weight:700;letter-spacing:.5px}
+    .actions{display:flex;gap:10px}
+    .btn{padding:10px 14px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;cursor:pointer;transition:.2s}
+    .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+    .btn.primary{background:var(--primary);color:var(--primary-ink);border-color:transparent}
+    .btn.ghost{background:transparent}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow)}
+    .toolbar{display:grid;grid-template-columns:1.2fr .8fr .6fr .6fr auto;gap:12px;padding:18px}
+    .input,.select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--text)}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px}
+    .filterbar{display:flex;flex-wrap:wrap;gap:10px;padding:16px 18px;border-top:1px solid var(--border)}
+    .filter-tabs{display:flex;gap:8px}
+    .tab{padding:8px 12px;border-radius:10px;border:1px solid var(--border);cursor:pointer}
+    .tab.active{background:var(--primary);color:var(--primary-ink);border-color:transparent}
+    .list{padding:8px}
+    .item{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:14px 16px;margin:10px 0;border:1px solid var(--border);border-radius:16px;background:var(--card)}
+    .item[draggable="true"]{cursor:grab}
+    .check{width:20px;height:20px;border-radius:6px;border:1px solid var(--border);display:grid;place-items:center}
+    .check input{width:16px;height:16px}
+    .titlebox{display:flex;align-items:center;gap:10px}
+    .name{min-width:160px;outline:none;border:none;background:transparent;color:inherit;font-size:16px;padding:4px 8px;border-radius:8px}
+    .name[contenteditable="true"]{border:1px dashed var(--border)}
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{padding:4px 8px;border-radius:8px;font-size:12px;border:1px solid var(--border);color:var(--muted)}
+    .prio.low{background:#e0f2fe;color:#0369a1;border-color:transparent}
+    .prio.medium{background:#fef3c7;color:#b45309;border-color:transparent}
+    .prio.high{background:#fee2e2;color:#b91c1c;border-color:transparent}
+    .controls{display:flex;align-items:center;gap:8px}
+    .iconbtn{width:36px;height:36px;border:1px solid var(--border);background:transparent;border-radius:12px;display:grid;place-items:center;cursor:pointer}
+    .icon{font-size:18px}
+    .footer{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-top:1px solid var(--border);color:var(--muted)}
+    .search{flex:1;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--text)}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">待办清单</div>
+      <input id="search" class="search" placeholder="搜索任务 (Ctrl+K)" />
+      <div class="actions">
+        <button id="theme" class="btn">浅/深色</button>
+        <button id="clear" class="btn ghost">清除已完成</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <input id="newTitle" class="input" placeholder="输入任务，按 Enter 添加" />
+        <input id="newDue" type="date" class="input" />
+        <select id="newPrio" class="select">
+          <option value="low">低优先</option>
+          <option value="medium">中优先</option>
+          <option value="high">高优先</option>
+        </select>
+        <input id="newTags" class="input" placeholder="标签，逗号分隔" />
+        <button id="add" class="btn primary">添加</button>
+      </div>
+      <div class="filterbar">
+        <div class="filter-tabs">
+          <div class="tab" data-status="all">全部</div>
+          <div class="tab" data-status="active">未完成</div>
+          <div class="tab" data-status="completed">已完成</div>
+        </div>
+        <select id="filterPrio" class="select" style="max-width:160px">
+          <option value="">优先级</option>
+          <option value="low">低</option>
+          <option value="medium">中</option>
+          <option value="high">高</option>
+        </select>
+        <select id="filterTag" class="select" style="max-width:180px">
+          <option value="">标签</option>
+        </select>
+        <select id="sortBy" class="select" style="max-width:180px">
+          <option value="createdAt">按创建时间</option>
+          <option value="due">按截止日期</option>
+          <option value="priority">按优先级</option>
+          <option value="title">按标题</option>
+        </select>
+        <select id="sortDir" class="select" style="max-width:140px">
+          <option value="desc">降序</option>
+          <option value="asc">升序</option>
+        </select>
+        <div class="chip" id="selectAll">全选</div>
+        <button id="bulkDone" class="btn">设为完成</button>
+        <button id="bulkDelete" class="btn">删除选中</button>
+      </div>
+      <div id="list" class="list"></div>
+      <div class="footer">
+        <div id="count">0 条任务</div>
+        <div class="chip">拖拽任务可调整顺序</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const el={
+      search:document.getElementById('search'),
+      theme:document.getElementById('theme'),
+      clear:document.getElementById('clear'),
+      newTitle:document.getElementById('newTitle'),
+      newDue:document.getElementById('newDue'),
+      newPrio:document.getElementById('newPrio'),
+      newTags:document.getElementById('newTags'),
+      add:document.getElementById('add'),
+      tabs:[...document.querySelectorAll('.tab')],
+      filterPrio:document.getElementById('filterPrio'),
+      filterTag:document.getElementById('filterTag'),
+      sortBy:document.getElementById('sortBy'),
+      sortDir:document.getElementById('sortDir'),
+      selectAll:document.getElementById('selectAll'),
+      bulkDone:document.getElementById('bulkDone'),
+      bulkDelete:document.getElementById('bulkDelete'),
+      list:document.getElementById('list'),
+      count:document.getElementById('count')
+    }
+    const storeKey='todo.rich.web'
+    const state=loadState()||{tasks:[],filter:{status:'all',prio:'',tag:'',search:'',sortBy:'createdAt',sortDir:'desc'},theme:'light'}
+    document.documentElement.setAttribute('data-theme',state.theme)
+    el.search.value=state.filter.search
+    el.sortBy.value=state.filter.sortBy
+    el.sortDir.value=state.filter.sortDir
+    if(state.filter.prio)el.filterPrio.value=state.filter.prio
+    setActiveTab(state.filter.status)
+    renderTagsFilter()
+    render()
+
+    function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+    function save(){localStorage.setItem(storeKey,JSON.stringify(state))}
+    function loadState(){try{return JSON.parse(localStorage.getItem(storeKey))}catch(e){return null}}
+    function setActiveTab(s){el.tabs.forEach(t=>t.classList.toggle('active',t.dataset.status===s))}
+    function normalizeTags(str){return str.split(',').map(x=>x.trim()).filter(Boolean)}
+    function prioLabel(p){return p==='high'?'高':p==='medium'?'中':'低'}
+    function sortTasks(arr){const k=state.filter.sortBy,d=state.filter.sortDir==='asc'?1:-1;return [...arr].sort((a,b)=>{let va=a[k],vb=b[k];if(k==='title'){va=va.toLowerCase();vb=vb.toLowerCase()}if(k==='priority'){const m={low:0,medium:1,high:2};va=m[va];vb=m[vb]}if(k==='due'){va=va||'';vb=vb||''}if(va>vb)return d; if(va<vb)return -d; return 0})}
+    function filtered(){let arr=state.tasks;const f=state.filter; if(f.status==='active')arr=arr.filter(t=>!t.completed); else if(f.status==='completed')arr=arr.filter(t=>t.completed); if(f.prio)arr=arr.filter(t=>t.priority===f.prio); if(f.tag)arr=arr.filter(t=>t.tags.includes(f.tag)); if(f.search){const s=f.search.toLowerCase();arr=arr.filter(t=>t.title.toLowerCase().includes(s))} return sortTasks(arr)}
+    function render(){el.list.innerHTML='';const tasks=filtered();tasks.forEach(t=>{const li=document.createElement('div');li.className='item';li.draggable=true;li.dataset.id=t.id;const left=document.createElement('div');left.className='check';const ck=document.createElement('input');ck.type='checkbox';ck.checked=t.completed;ck.addEventListener('change',()=>{t.completed=ck.checked;t.updatedAt=Date.now();save();render()});left.appendChild(ck);const mid=document.createElement('div');mid.className='titlebox';const name=document.createElement('div');name.className='name';name.textContent=t.title;name.addEventListener('dblclick',()=>{name.contentEditable='true';name.focus()});name.addEventListener('blur',()=>{if(name.isContentEditable){t.title=name.textContent.trim()||t.title;name.contentEditable='false';t.updatedAt=Date.now();save();render()}});const badges=document.createElement('div');badges.className='badges';const pr=document.createElement('span');pr.className='badge prio '+t.priority;pr.textContent='优先级 '+prioLabel(t.priority);badges.appendChild(pr);if(t.due){const due=document.createElement('span');due.className='badge';due.textContent='截止 '+t.due;badges.appendChild(due)}t.tags.forEach(tag=>{const tg=document.createElement('span');tg.className='badge';tg.textContent='#'+tag;badges.appendChild(tg)});mid.appendChild(name);mid.appendChild(badges);const right=document.createElement('div');right.className='controls';const select=document.createElement('input');select.type='checkbox';select.checked=!!t.selected;select.addEventListener('change',()=>{t.selected=select.checked;save()});const edit=document.createElement('button');edit.className='iconbtn';edit.innerHTML='<span class="icon">✎</span>';edit.addEventListener('click',()=>{openEditor(t)});const del=document.createElement('button');del.className='iconbtn';del.innerHTML='<span class="icon">🗑</span>';del.addEventListener('click',()=>{state.tasks=state.tasks.filter(x=>x.id!==t.id);save();renderTagsFilter();render()});const handle=document.createElement('div');handle.className='iconbtn';handle.innerHTML='<span class="icon">⋮⋮</span>';right.appendChild(select);right.appendChild(edit);right.appendChild(del);right.appendChild(handle);li.appendChild(left);li.appendChild(mid);li.appendChild(right);li.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',t.id)});li.addEventListener('dragover',e=>{e.preventDefault()});li.addEventListener('drop',e=>{e.preventDefault();const from=e.dataTransfer.getData('text/plain');const to=t.id;if(from&&to&&from!==to){const a=state.tasks.findIndex(x=>x.id===from);const b=state.tasks.findIndex(x=>x.id===to);const item=state.tasks.splice(a,1)[0];state.tasks.splice(b,0,item);save();render()}});el.list.appendChild(li)});el.count.textContent=state.tasks.length+' 条任务'}
+    function openEditor(t){const panel=document.createElement('div');panel.style.position='fixed';panel.style.inset='0';panel.style.background='rgba(0,0,0,.35)';panel.style.display='grid';panel.style.placeItems='center';const box=document.createElement('div');box.className='card';box.style.width='520px';box.style.padding='18px';const ttl=document.createElement('input');ttl.className='input';ttl.value=t.title;const due=document.createElement('input');due.type='date';due.className='input';due.value=t.due||'';const pr=document.createElement('select');pr.className='select';pr.innerHTML='<option value="low">低优先</option><option value="medium">中优先</option><option value="high">高优先</option>';pr.value=t.priority;const tags=document.createElement('input');tags.className='input';tags.value=t.tags.join(',');const row=document.createElement('div');row.style.display='flex';row.style.gap='10px';row.style.marginTop='12px';const ok=document.createElement('button');ok.className='btn primary';ok.textContent='保存';const cancel=document.createElement('button');cancel.className='btn';cancel.textContent='取消';row.appendChild(ok);row.appendChild(cancel);box.appendChild(ttl);box.appendChild(due);box.appendChild(pr);box.appendChild(tags);box.appendChild(row);panel.appendChild(box);document.body.appendChild(panel);cancel.onclick=()=>{panel.remove()};ok.onclick=()=>{t.title=ttl.value.trim()||t.title;t.due=due.value||'';t.priority=pr.value;t.tags=normalizeTags(tags.value);t.updatedAt=Date.now();save();panel.remove();renderTagsFilter();render()}}
+    function addTask(){const title=el.newTitle.value.trim();if(!title)return;const t={id:uid(),title,completed:false,priority:el.newPrio.value,due:el.newDue.value||'',tags:normalizeTags(el.newTags.value),createdAt:Date.now(),updatedAt:Date.now()};state.tasks.unshift(t);el.newTitle.value='';el.newDue.value='';el.newTags.value='';save();renderTagsFilter();render()}
+    function renderTagsFilter(){const all=Array.from(new Set(state.tasks.flatMap(t=>t.tags))).sort();el.filterTag.innerHTML='<option value="">标签</option>'+all.map(x=>'<option value="'+x+'">'+x+'</option>').join('');if(state.filter.tag){const ok=all.includes(state.filter.tag);el.filterTag.value=ok?state.filter.tag:'';if(!ok)state.filter.tag=''} }
+
+    el.add.addEventListener('click',addTask)
+    el.newTitle.addEventListener('keydown',e=>{if(e.key==='Enter'){addTask()}})
+    el.clear.addEventListener('click',()=>{state.tasks=state.tasks.filter(t=>!t.completed);save();renderTagsFilter();render()})
+    el.theme.addEventListener('click',()=>{state.theme=state.theme==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',state.theme);save()})
+    el.tabs.forEach(t=>t.addEventListener('click',()=>{state.filter.status=t.dataset.status;setActiveTab(state.filter.status);save();render()}))
+    el.filterPrio.addEventListener('change',()=>{state.filter.prio=el.filterPrio.value;save();render()})
+    el.filterTag.addEventListener('change',()=>{state.filter.tag=el.filterTag.value;save();render()})
+    el.search.addEventListener('input',()=>{state.filter.search=el.search.value;save();render()})
+    el.sortBy.addEventListener('change',()=>{state.filter.sortBy=el.sortBy.value;save();render()})
+    el.sortDir.addEventListener('change',()=>{state.filter.sortDir=el.sortDir.value;save();render()})
+    el.selectAll.addEventListener('click',()=>{const allSelected=state.tasks.every(t=>t.selected);state.tasks.forEach(t=>t.selected=!allSelected);save();render()})
+    el.bulkDone.addEventListener('click',()=>{state.tasks.forEach(t=>{if(t.selected){t.completed=true;t.selected=false}});save();render()})
+    el.bulkDelete.addEventListener('click',()=>{state.tasks=state.tasks.filter(t=>!t.selected);save();renderTagsFilter();render()})
+    window.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key.toLowerCase()==='k'){e.preventDefault();el.search.focus()}if(e.key==='Delete'){const has=state.tasks.some(t=>t.selected);if(has){state.tasks=state.tasks.filter(t=>!t.selected);save();renderTagsFilter();render()}}})
+  </script>
+</body>
+</html>

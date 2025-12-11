@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文档转换</title>
+  <style>
+    :root{--bg:#f7f8fb;--card:#ffffff;--text:#111827;--muted:#6b7280;--primary:#2563eb;--primary-ink:#ffffff;--accent:#10b981;--danger:#ef4444;--border:#e5e7eb;--shadow:0 10px 30px rgba(17,24,39,.08)}
+    [data-theme="dark"]{--bg:#0b1220;--card:#0f172a;--text:#e5e7eb;--muted:#94a3b8;--primary:#3b82f6;--primary-ink:#0b1220;--accent:#34d399;--danger:#f87171;--border:#1f2937;--shadow:0 10px 30px rgba(2,6,23,.5)}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif}
+    .wrap{max-width:1000px;margin:40px auto;padding:0 24px}
+    .header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+    .title{flex:1;font-size:32px;font-weight:800}
+    .btn{padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);cursor:pointer;transition:.2s}
+    .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+    .btn.primary{background:var(--primary);color:var(--primary-ink);border-color:transparent}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow)}
+    .panel{padding:18px}
+    .uploader{display:grid;place-items:center;padding:26px;border:2px dashed var(--border);border-radius:16px;background:transparent;color:var(--muted)}
+    .uploader.drag{border-color:var(--primary);color:var(--primary)}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .input,.select{padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--text)}
+    .muted{color:var(--muted);font-size:13px}
+    .progress{height:10px;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:999px;transition:.3s}
+    .log{padding:10px;border:1px solid var(--border);border-radius:12px;height:150px;overflow:auto;white-space:pre-line}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--primary);color:var(--primary-ink);padding:10px 14px;border-radius:12px;box-shadow:var(--shadow)}
+  </style>
+  <script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.16.0/pptxgen.bundle.js"></script>
+  <script src="https://unpkg.com/docx@8.3.0/build/index.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">文档转换</div>
+      <button id="theme" class="btn">浅/深色</button>
+    </div>
+    <div class="card">
+      <div class="panel">
+        <div id="drop" class="uploader">
+          <div>拖拽文件到此，或</div>
+          <div style="margin-top:10px"><input id="file" type="file" class="input" accept=".docx,.pptx,.pdf"/></div>
+          <div class="muted" style="margin-top:6px">支持 .docx、.pptx、.pdf</div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <select id="from" class="select">
+            <option value="auto">自动识别</option>
+            <option value="docx">Word (.docx)</option>
+            <option value="pptx">PPT (.pptx)</option>
+            <option value="pdf">PDF (.pdf)</option>
+          </select>
+          <select id="to" class="select">
+            <option value="pdf">PDF (.pdf)</option>
+            <option value="pptx">PPT (.pptx)</option>
+            <option value="docx">Word (.docx)</option>
+          </select>
+          <button id="convert" class="btn primary">开始转换</button>
+        </div>
+        <div style="margin-top:12px" class="muted">提示：复杂版式与高级样式可能无法 100% 保真，但可满足常见纯文本、标题、段落、图片页等场景。</div>
+        <div style="margin-top:12px;height:10px;background:var(--border);border-radius:999px"><div id="bar" class="progress" style="width:0%"></div></div>
+        <div style="margin-top:12px" id="log" class="log"></div>
+        <div style="margin-top:12px" id="result"></div>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast" style="display:none"></div>
+  <script>
+    const el={file:document.getElementById('file'),drop:document.getElementById('drop'),from:document.getElementById('from'),to:document.getElementById('to'),convert:document.getElementById('convert'),bar:document.getElementById('bar'),log:document.getElementById('log'),result:document.getElementById('result'),theme:document.getElementById('theme'),toast:document.getElementById('toast')}
+    const key='doc.convert.web'
+    const state=load()||{theme:'light'}
+    document.documentElement.setAttribute('data-theme',state.theme)
+    function save(){localStorage.setItem(key,JSON.stringify(state))}
+    function load(){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
+    function toast(msg){el.toast.textContent=msg;el.toast.style.display='block';setTimeout(()=>{el.toast.style.display='none'},1600)}
+    function log(msg){el.log.textContent+=msg+'\n';el.log.scrollTop=el.log.scrollHeight}
+    function setBar(p){el.bar.style.width=Math.max(0,Math.min(100,p))+'%'}
+    function guessType(name){const ext=name.split('.').pop().toLowerCase();if(['docx','pptx','pdf'].includes(ext))return ext;return 'auto'}
+    function read(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsArrayBuffer(file)})}
+    function download(name,mime,blob){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);el.result.innerHTML='已生成：<a href="'+url+'" download="'+name+'">'+name+'</a>'}
+
+    async function docxToPdf(buf,baseName){log('解析 DOCX');const r=await mammoth.convertToHtml({arrayBuffer:buf});const html=r.value;const node=document.createElement('div');node.innerHTML=html;log('生成 PDF');const opt={margin:10,filename:baseName+'.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};setBar(80);await html2pdf().set(opt).from(node).save();setBar(100);toast('转换完成')}
+    async function docxToPptx(buf,baseName){log('解析 DOCX');const r=await mammoth.convertToHtml({arrayBuffer:buf});const html=r.value;const dom=new DOMParser().parseFromString(html,'text/html');const pptx=new PptxGenJS();pptx.layout='LAYOUT_16x9';const blocks=[...dom.body.children].map(x=>x.textContent.trim()).filter(Boolean);if(blocks.length===0)blocks.push('空文档');blocks.forEach((text,i)=>{const s=pptx.addSlide();s.addText(text,{x:0.7,y:0.7,w:8.6,h:4,fontSize:24,align:'left'})});const blob=await pptx.write('blob');download(baseName+'.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation',blob);setBar(100);toast('转换完成')}
+    async function pdfToDocx(buf,baseName){log('解析 PDF');const pdf=await pdfjsLib.getDocument({data:buf}).promise;let paras=[];for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const tc=await page.getTextContent();const text=tc.items.map(it=>it.str).join(' ');paras.push('第 '+i+' 页');paras.push(text)}log('生成 DOCX');const doc=new docx.Document({sections:[{children:paras.map(t=>new docx.Paragraph(t))}]});const blob=await docx.Packer.toBlob(doc);download(baseName+'.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',blob);setBar(100);toast('转换完成')}
+    async function pdfToPptx(buf,baseName){log('渲染 PDF 为图片');const pdf=await pdfjsLib.getDocument({data:buf}).promise;const pptx=new PptxGenJS();pptx.layout='LAYOUT_16x9';for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const vp=page.getViewport({scale:2});const canvas=document.createElement('canvas');canvas.width=vp.width;canvas.height=vp.height;await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;const dataUrl=canvas.toDataURL('image/jpeg',0.95);const s=pptx.addSlide();s.addImage({data:dataUrl,x:0,y:0,w:10,h:5.625})}log('生成 PPTX');const blob=await pptx.write('blob');download(baseName+'.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation',blob);setBar(100);toast('转换完成')}
+    async function pptxToText(buf){const zip=await JSZip.loadAsync(buf);const slideFiles=Object.keys(zip.files).filter(x=>x.startsWith('ppt/slides/slide')&&x.endsWith('.xml')).sort();let slides=[];for(const path of slideFiles){const xml=await zip.file(path).async('string');const doc=new DOMParser().parseFromString(xml,'application/xml');const texts=[...doc.querySelectorAll('a\\:t, t')].map(n=>n.textContent.trim()).filter(Boolean);slides.push(texts.join(' '))}return slides}
+    async function pptxToPdf(buf,baseName){log('解析 PPTX');const slides=await pptxToText(buf);log('生成 PDF');const container=document.createElement('div');slides.forEach((txt,i)=>{const page=document.createElement('div');page.style.margin='12px 0';page.innerHTML='<div style="font-weight:700;font-size:18px">幻灯片 '+(i+1)+'</div><div style="margin-top:6px;white-space:pre-wrap">'+(txt||'(空)')+'</div>';container.appendChild(page)});const opt={margin:10,filename:baseName+'.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};await html2pdf().set(opt).from(container).save();setBar(100);toast('转换完成')}
+    async function pptxToDocx(buf,baseName){log('解析 PPTX');const slides=await pptxToText(buf);log('生成 DOCX');const doc=new docx.Document({sections:[{children:slides.flatMap((txt,i)=>[new docx.Paragraph({text:'幻灯片 '+(i+1),heading:docx.HeadingLevel.HEADING_2}),new docx.Paragraph(txt||'(空)')])}]});const blob=await docx.Packer.toBlob(doc);download(baseName+'.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',blob);setBar(100);toast('转换完成')}
+
+    async function run(){const file=el.file.files[0];if(!file){toast('请先选择文件');return}el.log.textContent='';el.result.textContent='';setBar(10);const buf=await read(file);const fname=file.name.replace(/\.(docx|pptx|pdf)$/i,'');const src=el.from.value==='auto'?guessType(file.name):el.from.value;const dst=el.to.value;if(src===dst){toast('源格式与目标格式相同');return}log('源格式: '+src+' → 目标格式: '+dst);try{setBar(30);if(src==='docx'&&dst==='pdf')await docxToPdf(buf,fname);else if(src==='docx'&&dst==='pptx')await docxToPptx(buf,fname);else if(src==='pdf'&&dst==='docx')await pdfToDocx(buf,fname);else if(src==='pdf'&&dst==='pptx')await pdfToPptx(buf,fname);else if(src==='pptx'&&dst==='pdf')await pptxToPdf(buf,fname);else if(src==='pptx'&&dst==='docx')await pptxToDocx(buf,fname);else{toast('该转换暂不支持');log('不支持的组合: '+src+' -> '+dst)}}catch(e){console.error(e);toast('转换失败');log('错误: '+(e&&e.message||e))}}
+
+    el.convert.onclick=()=>{run()}
+    el.theme.onclick=()=>{state.theme=state.theme==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',state.theme);save()}
+    ;(function(){const d=el.drop;d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('drag')});d.addEventListener('dragleave',()=>{d.classList.remove('drag')});d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('drag');const f=e.dataTransfer.files[0];if(f){el.file.files=e.dataTransfer.files;toast('已选择文件: '+f.name)}})})()
+  </script>
+</body>
+</html>

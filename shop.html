@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>日用品商城</title>
+  <style>
+    :root{--bg:#f7f8fb;--card:#ffffff;--text:#111827;--muted:#6b7280;--primary:#2563eb;--primary-ink:#ffffff;--accent:#10b981;--danger:#ef4444;--border:#e5e7eb;--shadow:0 10px 30px rgba(17,24,39,.08)}
+    [data-theme="dark"]{--bg:#0b1220;--card:#0f172a;--text:#e5e7eb;--muted:#94a3b8;--primary:#3b82f6;--primary-ink:#0b1220;--accent:#34d399;--danger:#f87171;--border:#1f2937;--shadow:0 10px 30px rgba(2,6,23,.5)}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif}
+    .wrap{max-width:1200px;margin:40px auto;padding:0 24px}
+    .header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+    .title{flex:1;font-size:32px;font-weight:800}
+    .search{flex:1;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--text)}
+    .btn{padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);cursor:pointer;transition:.2s}
+    .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+    .btn.primary{background:var(--primary);color:var(--primary-ink);border-color:transparent}
+    .grid{display:grid;grid-template-columns:280px 1fr 340px;gap:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow)}
+    .panel{padding:18px}
+    .section{margin-bottom:14px}
+    .label{font-size:13px;color:var(--muted);margin-bottom:6px}
+    .select,.input,.range{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--text)}
+    .row{display:flex;gap:10px}
+    .list{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px}
+    .product{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--card)}
+    .img{height:140px;border-radius:12px;background:linear-gradient(135deg,#93c5fd,#a7f3d0);display:grid;place-items:center;color:#0b1220;font-size:42px}
+    .name{font-weight:600}
+    .tags{display:flex;gap:6px;flex-wrap:wrap}
+    .tag{font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted)}
+    .price{font-size:18px;font-weight:700}
+    .muted{color:var(--muted);font-size:13px}
+    .pactions{display:flex;gap:8px}
+    .iconbtn{width:36px;height:36px;border:1px solid var(--border);background:transparent;border-radius:12px;display:grid;place-items:center;cursor:pointer}
+    .cart{position:sticky;top:24px}
+    .cart-header{display:flex;justify-content:space-between;align-items:center}
+    .cart-items{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+    .cart-item{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:12px}
+    .qty{display:flex;align-items:center;gap:6px}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px}
+    .summary{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}
+    .drawer-toggle{display:none}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--primary);color:var(--primary-ink);padding:10px 14px;border-radius:12px;box-shadow:var(--shadow)}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}.cart{position:fixed;right:0;top:0;height:100vh;width:84vw;max-width:420px;transform:translateX(100%);transition:.3s}.cart.open{transform:translateX(0)}.drawer-toggle{display:inline-block}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">日用品商城</div>
+      <input id="search" class="search" placeholder="搜索商品 (Ctrl+F)" />
+      <button id="theme" class="btn">浅/深色</button>
+      <button id="drawer" class="btn drawer-toggle">购物车</button>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="panel">
+          <div class="section">
+            <div class="label">分类</div>
+            <select id="category" class="select"></select>
+          </div>
+          <div class="section">
+            <div class="label">品牌</div>
+            <select id="brand" class="select"></select>
+          </div>
+          <div class="section row">
+            <div style="flex:1">
+              <div class="label">最低价</div>
+              <input id="min" type="number" class="input" placeholder="0" />
+            </div>
+            <div style="flex:1">
+              <div class="label">最高价</div>
+              <input id="max" type="number" class="input" placeholder="500" />
+            </div>
+          </div>
+          <div class="section row">
+            <div style="flex:1">
+              <div class="label">排序</div>
+              <select id="sortBy" class="select">
+                <option value="pop">人气</option>
+                <option value="price">价格</option>
+                <option value="rating">评分</option>
+                <option value="name">名称</option>
+              </select>
+            </div>
+            <div style="flex:.8">
+              <div class="label">方向</div>
+              <select id="sortDir" class="select">
+                <option value="desc">降序</option>
+                <option value="asc">升序</option>
+              </select>
+            </div>
+          </div>
+          <div class="section">
+            <label class="chip"><input id="stock" type="checkbox"/> 仅显示有货</label>
+          </div>
+          <div class="section row">
+            <button id="reset" class="btn">重置筛选</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div id="list" class="list"></div>
+      </div>
+      <div class="card cart" id="cart">
+        <div class="panel">
+          <div class="cart-header">
+            <div style="font-weight:700">购物车</div>
+            <div>
+              <button id="clearCart" class="btn">清空</button>
+            </div>
+          </div>
+          <div id="cartItems" class="cart-items"></div>
+          <div class="section">
+            <div class="label">优惠码</div>
+            <div class="row">
+              <input id="coupon" class="input" placeholder="输入优惠码，如 SAVE10"/>
+              <button id="applyCoupon" class="btn">应用</button>
+            </div>
+            <div class="muted" id="couponTip"></div>
+          </div>
+          <div class="summary">
+            <div>商品金额</div><div id="subtotal">¥0.00</div>
+            <div>优惠金额</div><div id="discount">-¥0.00</div>
+            <div>运费</div><div id="shipping">¥0.00</div>
+            <div style="font-weight:700">应付总计</div><div id="total" style="font-weight:700">¥0.00</div>
+          </div>
+          <div class="section">
+            <button id="checkout" class="btn primary" style="width:100%">去结算</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast" style="display:none"></div>
+  <script>
+    const el={search:document.getElementById('search'),theme:document.getElementById('theme'),drawer:document.getElementById('drawer'),category:document.getElementById('category'),brand:document.getElementById('brand'),min:document.getElementById('min'),max:document.getElementById('max'),sortBy:document.getElementById('sortBy'),sortDir:document.getElementById('sortDir'),stock:document.getElementById('stock'),reset:document.getElementById('reset'),list:document.getElementById('list'),cart:document.getElementById('cart'),cartItems:document.getElementById('cartItems'),clearCart:document.getElementById('clearCart'),coupon:document.getElementById('coupon'),applyCoupon:document.getElementById('applyCoupon'),couponTip:document.getElementById('couponTip'),subtotal:document.getElementById('subtotal'),discount:document.getElementById('discount'),shipping:document.getElementById('shipping'),total:document.getElementById('total'),checkout:document.getElementById('checkout'),toast:document.getElementById('toast')}
+    const key='shop.daily.web'
+    const data=[
+      {id:'p01',name:'抽纸巾 3层*10包',price:19.9,brand:'柔洁',category:'纸品',rating:4.6,stock:48,tags:['纸巾','家用'],pop:860},
+      {id:'p02',name:'垃圾袋 加厚 100只',price:15.8,brand:'洁家',category:'清洁',rating:4.4,stock:120,tags:['垃圾袋','厨房'],pop:740},
+      {id:'p03',name:'洗衣液 2kg',price:39,brand:'净彩',category:'清洁',rating:4.7,stock:26,tags:['洗衣','衣物'],pop:920},
+      {id:'p04',name:'洗手液 500ml',price:12.9,brand:'清泉',category:'个护',rating:4.5,stock:0,tags:['洗手','杀菌'],pop:560},
+      {id:'p05',name:'牙刷 软毛 4支装',price:16.9,brand:'白笑',category:'个护',rating:4.3,stock:85,tags:['刷牙','口腔'],pop:580},
+      {id:'p06',name:'牙膏 早晚套装',price:24.5,brand:'白笑',category:'个护',rating:4.6,stock:50,tags:['牙膏','口腔'],pop:640},
+      {id:'p07',name:'保鲜袋 3卷',price:9.9,brand:'厨乐',category:'厨房',rating:4.2,stock:140,tags:['保鲜','厨房'],pop:430},
+      {id:'p08',name:'保鲜膜 30cm*50m',price:13.9,brand:'厨乐',category:'厨房',rating:4.4,stock:60,tags:['保鲜膜','厨房'],pop:520},
+      {id:'p09',name:'除油洗洁精 1kg',price:18.9,brand:'洁家',category:'厨房',rating:4.5,stock:90,tags:['清洁','餐具'],pop:700},
+      {id:'p10',name:'拖地湿巾 20片',price:17.9,brand:'柔洁',category:'清洁',rating:4.1,stock:35,tags:['地板','清洁'],pop:410},
+      {id:'p11',name:'一次性口罩 50只',price:29.9,brand:'安护',category:'个护',rating:4.8,stock:200,tags:['口罩','防护'],pop:1100},
+      {id:'p12',name:'马桶清洁剂 500ml',price:21.9,brand:'洁家',category:'清洁',rating:4.6,stock:32,tags:['清洁','卫浴'],pop:620}
+    ]
+    const state=load()||{filter:{search:'',category:'',brand:'',min:'',max:'',sortBy:'pop',sortDir:'desc',stock:false},cart:{items:[],coupon:''},wish:[],theme:'light'}
+    document.documentElement.setAttribute('data-theme',state.theme)
+    el.search.value=state.filter.search
+    el.sortBy.value=state.filter.sortBy
+    el.sortDir.value=state.filter.sortDir
+    el.stock.checked=state.filter.stock
+    el.coupon.value=state.cart.coupon
+    renderFilters()
+    renderList()
+    renderCart()
+
+    function save(){localStorage.setItem(key,JSON.stringify(state))}
+    function load(){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
+    function num(n){return Number(n)||0}
+    function currency(n){return '¥'+n.toFixed(2)}
+    function toast(msg){el.toast.textContent=msg;el.toast.style.display='block';setTimeout(()=>{el.toast.style.display='none'},1600)}
+    function uniq(arr){return Array.from(new Set(arr))}
+    function ratingStars(r){const n=Math.round(r);return '★'.repeat(Math.min(5,n))+'☆'.repeat(Math.max(0,5-n))}
+    function renderFilters(){const cats=uniq(data.map(x=>x.category)).sort();const brands=uniq(data.map(x=>x.brand)).sort();el.category.innerHTML='<option value="">全部分类</option>'+cats.map(x=>'<option value="'+x+'">'+x+'</option>').join('');el.brand.innerHTML='<option value="">全部品牌</option>'+brands.map(x=>'<option value="'+x+'">'+x+'</option>').join('');el.category.value=state.filter.category;el.brand.value=state.filter.brand;el.min.value=state.filter.min;el.max.value=state.filter.max}
+    function applyFilter(){let arr=[...data];const f=state.filter;const s=f.search.toLowerCase();if(s)arr=arr.filter(p=>p.name.toLowerCase().includes(s)||p.tags.some(t=>t.includes(s)));if(f.category)arr=arr.filter(p=>p.category===f.category);if(f.brand)arr=arr.filter(p=>p.brand===f.brand);if(f.stock)arr=arr.filter(p=>p.stock>0);if(f.min!=='')arr=arr.filter(p=>p.price>=num(f.min));if(f.max!=='')arr=arr.filter(p=>p.price<=num(f.max));const d=f.sortDir==='asc'?1:-1;const k=f.sortBy;arr.sort((a,b)=>{let va=a[k],vb=b[k];if(k==='name'){va=va.toLowerCase();vb=vb.toLowerCase()}return va>vb?d:va<vb?-d:0});return arr}
+    function renderList(){el.list.innerHTML='';applyFilter().forEach(p=>{const card=document.createElement('div');card.className='product';card.draggable=true;card.dataset.id=p.id;const img=document.createElement('div');img.className='img';img.textContent=p.category==='厨房'?'🍳':p.category==='清洁'?'🫧':p.category==='个护'?'🧴':'📦';const name=document.createElement('div');name.className='name';name.textContent=p.name;const meta=document.createElement('div');meta.className='muted';meta.textContent=p.brand+' · '+ratingStars(p.rating)+' · 库存 '+p.stock;const tags=document.createElement('div');tags.className='tags';p.tags.forEach(t=>{const s=document.createElement('span');s.className='tag';s.textContent='#'+t;tags.appendChild(s)});const price=document.createElement('div');price.className='price';price.textContent=currency(p.price);const actions=document.createElement('div');actions.className='pactions';const add=document.createElement('button');add.className='btn primary';add.textContent='加入购物车';add.onclick=()=>{addToCart(p.id)};const wish=document.createElement('button');wish.className='iconbtn';wish.innerHTML=state.wish.includes(p.id)?'❤️':'🤍';wish.onclick=()=>{toggleWish(p.id);wish.innerHTML=state.wish.includes(p.id)?'❤️':'🤍'};const stockTip=document.createElement('div');stockTip.className='chip';stockTip.textContent=p.stock>0?'有货':'缺货';actions.appendChild(add);actions.appendChild(wish);actions.appendChild(stockTip);card.appendChild(img);card.appendChild(name);card.appendChild(meta);card.appendChild(tags);card.appendChild(price);card.appendChild(actions);card.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',p.id)});el.list.appendChild(card)});el.cart.addEventListener('dragover',e=>{e.preventDefault()});el.cart.addEventListener('drop',e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)addToCart(id)})}
+    function addToCart(id){const p=data.find(x=>x.id===id);if(!p)return;if(p.stock<=0){toast('该商品缺货');return}const it=state.cart.items.find(x=>x.id===id);if(it){it.qty=Math.min(it.qty+1,99)}else{state.cart.items.push({id,qty:1})}save();renderCart();toast('已加入购物车')}
+    function removeFromCart(id){state.cart.items=state.cart.items.filter(x=>x.id!==id);save();renderCart()}
+    function setQty(id,qty){const it=state.cart.items.find(x=>x.id===id);if(!it)return;it.qty=Math.max(1,Math.min(99,qty));save();renderCart()}
+    function clearCart(){state.cart.items=[];save();renderCart()}
+    function toggleWish(id){if(state.wish.includes(id)){state.wish=state.wish.filter(x=>x!==id)}else{state.wish.push(id)}save()}
+    function calc(){let sub=0;state.cart.items.forEach(it=>{const p=data.find(x=>x.id===it.id);if(p)sub+=p.price*it.qty});let dis=0;let ship=0;const code=(state.cart.coupon||'').trim().toUpperCase();let tip='';if(code==='SAVE10'){dis=sub*0.1;tip='已使用 SAVE10: 9折'}else if(code==='LESS20'&&sub>=150){dis=20;tip='已使用 LESS20: 满150减20'}else if(code==='FREESHIP'){tip='已使用 FREESHIP: 免运费'}if(sub-dis>=199||code==='FREESHIP'){ship=0}else{ship=sub===0?0:12}return {sub,dis,ship,total:Math.max(0,sub-dis+ship),tip}}
+    function renderCart(){el.cartItems.innerHTML='';state.cart.items.forEach(it=>{const p=data.find(x=>x.id===it.id);const row=document.createElement('div');row.className='cart-item';const nm=document.createElement('div');nm.textContent=p.name;const pr=document.createElement('div');pr.textContent=currency(p.price);const qty=document.createElement('div');qty.className='qty';const minus=document.createElement('button');minus.className='iconbtn';minus.textContent='−';minus.onclick=()=>{setQty(it.id,it.qty-1)};const q=document.createElement('input');q.type='number';q.min='1';q.max='99';q.value=it.qty;q.className='input';q.style.width='70px';q.onchange=()=>{setQty(it.id,Number(q.value))};const plus=document.createElement('button');plus.className='iconbtn';plus.textContent='+';plus.onclick=()=>{setQty(it.id,it.qty+1)};qty.appendChild(minus);qty.appendChild(q);qty.appendChild(plus);const rm=document.createElement('button');rm.className='iconbtn';rm.textContent='🗑';rm.onclick=()=>{removeFromCart(it.id)};row.appendChild(nm);row.appendChild(pr);row.appendChild(qty);row.appendChild(rm);el.cartItems.appendChild(row)});const c=calc();el.subtotal.textContent=currency(c.sub);el.discount.textContent='-'+currency(c.dis);el.shipping.textContent=currency(c.ship);el.total.textContent=currency(c.total);el.couponTip.textContent=c.tip}
+    function applyCoupon(){state.cart.coupon=el.coupon.value;save();renderCart();toast('优惠码已应用')}
+    function checkout(){const c=calc();if(c.total<=0){toast('购物车为空');return}const panel=document.createElement('div');panel.style.position='fixed';panel.style.inset='0';panel.style.background='rgba(0,0,0,.35)';panel.style.display='grid';panel.style.placeItems='center';const box=document.createElement('div');box.className='card';box.style.width='560px';box.style.padding='18px';const ttl=document.createElement('div');ttl.style.fontWeight='700';ttl.style.marginBottom='8px';ttl.textContent='订单确认';const list=document.createElement('div');state.cart.items.forEach(it=>{const p=data.find(x=>x.id===it.id);const line=document.createElement('div');line.style.display='grid';line.style.gridTemplateColumns='1fr auto auto';line.style.gap='8px';line.style.margin='6px 0';const nm=document.createElement('div');nm.textContent=p.name;const qs=document.createElement('div');qs.textContent='x'+it.qty;const pr=document.createElement('div');pr.textContent=currency(p.price*it.qty);line.appendChild(nm);line.appendChild(qs);line.appendChild(pr);list.appendChild(line)});const sum=document.createElement('div');sum.style.marginTop='10px';sum.innerHTML='<div class="summary"><div>总计</div><div>'+el.total.textContent+'</div></div>';const row=document.createElement('div');row.style.display='flex';row.style.gap='10px';row.style.marginTop='12px';const ok=document.createElement('button');ok.className='btn primary';ok.textContent='下单';const cancel=document.createElement('button');cancel.className='btn';cancel.textContent='取消';row.appendChild(ok);row.appendChild(cancel);box.appendChild(ttl);box.appendChild(list);box.appendChild(sum);box.appendChild(row);panel.appendChild(box);document.body.appendChild(panel);cancel.onclick=()=>{panel.remove()};ok.onclick=()=>{panel.remove();clearCart();toast('下单成功')}}
+
+    el.theme.onclick=()=>{state.theme=state.theme==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',state.theme);save()}
+    el.drawer.onclick=()=>{el.cart.classList.toggle('open')}
+    el.search.oninput=()=>{state.filter.search=el.search.value;save();renderList()}
+    el.category.onchange=()=>{state.filter.category=el.category.value;save();renderList()}
+    el.brand.onchange=()=>{state.filter.brand=el.brand.value;save();renderList()}
+    el.min.onchange=()=>{state.filter.min=el.min.value;save();renderList()}
+    el.max.onchange=()=>{state.filter.max=el.max.value;save();renderList()}
+    el.sortBy.onchange=()=>{state.filter.sortBy=el.sortBy.value;save();renderList()}
+    el.sortDir.onchange=()=>{state.filter.sortDir=el.sortDir.value;save();renderList()}
+    el.stock.onchange=()=>{state.filter.stock=el.stock.checked;save();renderList()}
+    el.reset.onclick=()=>{state.filter={search:'',category:'',brand:'',min:'',max:'',sortBy:'pop',sortDir:'desc',stock:false};el.search.value='';renderFilters();save();renderList()}
+    el.clearCart.onclick=()=>{clearCart();toast('已清空购物车')}
+    el.applyCoupon.onclick=()=>{applyCoupon()}
+    el.checkout.onclick=()=>{checkout()}
+    window.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key.toLowerCase()==='f'){e.preventDefault();el.search.focus()}if(e.key==='Escape'){el.cart.classList.remove('open')}})
+  </script>
+</body>
+</html>
